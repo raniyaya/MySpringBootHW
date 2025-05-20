@@ -26,4 +26,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     Optional<Book> findByIsbnWithBookDetail(@Param("isbn") String isbn);
 
     boolean existsByIsbn(String isbn);
+
+    List<Book> findByPublisherId(Long publisherId);
+
+    Long countByPublisherId(@Param("publisherId") Long publisherId);
 }

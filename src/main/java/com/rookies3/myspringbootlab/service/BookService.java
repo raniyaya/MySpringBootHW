@@ -3,13 +3,13 @@ package com.rookies3.myspringbootlab.service;
 import com.rookies3.myspringbootlab.controller.dto.BookDTO;
 import com.rookies3.myspringbootlab.entity.Book;
 import com.rookies3.myspringbootlab.entity.BookDetail;
+import com.rookies3.myspringbootlab.entity.Publisher;
 import com.rookies3.myspringbootlab.exception.BusinessException;
 import com.rookies3.myspringbootlab.exception.ErrorCode;
 import com.rookies3.myspringbootlab.repository.BookDetailRepository;
 import com.rookies3.myspringbootlab.repository.BookRepository;
-
+import com.rookies3.myspringbootlab.repository.PublisherRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +23,8 @@ public class BookService {
 
     private final BookRepository bookRepository;
     private final BookDetailRepository bookDetailRepository;
+    private final PublisherRepository publisherRepository;
+
 
     public List<BookDTO.Response> getAllBooks() {
         return bookRepository.findAll()
@@ -57,12 +59,30 @@ public class BookService {
                 .toList();
     }
 
+    public List<BookDTO.Response> getBooksByPublisherId(Long publisherId) {
+        if (publisherRepository.existsById(publisherId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Publisher", "id", publisherId);
+        }
+
+        return bookRepository.findByPublisherId(publisherId).stream()
+                .map(BookDTO.Response::fromEntity)
+                .toList();
+    }
+
+
     @Transactional
     public BookDTO.Response createBook(BookDTO.Request request) {
+
         // Validate ISBN is not already in use
+        Publisher publisher = publisherRepository.findById(request.getPublisherId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                "Publisher", "id", request.getPublisherId()));
+
         if (bookRepository.existsByIsbn(request.getIsbn())) {
             throw new BusinessException(ErrorCode.ISBN_DUPLICATE, request.getIsbn());
         }
+
+
 
         // Create book entity
         Book book = Book.builder()
@@ -71,6 +91,7 @@ public class BookService {
                 .isbn(request.getIsbn())
                 .price(request.getPrice())
                 .publishDate(request.getPublishDate())
+                .publisher(publisher)
                 .build();
 
         // Create book detail if provided
@@ -79,7 +100,6 @@ public class BookService {
                     .description(request.getDetail().getDescription())
                     .language(request.getDetail().getLanguage())
                     .pageCount(request.getDetail().getPageCount())
-                    .publisher(request.getDetail().getPublisher())
                     .coverImageUrl(request.getDetail().getCoverImageUrl())
                     .edition(request.getDetail().getEdition())
                     //연관관계 저장
@@ -100,6 +120,9 @@ public class BookService {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Book", "id", id));
 
+        Publisher publisher = publisherRepository.findById(request.getPublisherId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Publisher", "id", request.getPublisherId()));
+
         // Check if another book already has the ISBN
         if (!book.getIsbn().equals(request.getIsbn()) &&
                 bookRepository.existsByIsbn(request.getIsbn())) {
@@ -112,6 +135,7 @@ public class BookService {
         book.setIsbn(request.getIsbn());
         book.setPrice(request.getPrice());
         book.setPublishDate(request.getPublishDate());
+        book.setPublisher(publisher);
 
         // Update book detail if provided
         if (request.getDetail() != null) {
