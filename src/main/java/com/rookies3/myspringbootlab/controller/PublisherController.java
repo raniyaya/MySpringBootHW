@@ -1,11 +1,13 @@
 package com.rookies3.myspringbootlab.controller;
 
+import com.rookies3.myspringbootlab.controller.dto.BookDTO;
 import com.rookies3.myspringbootlab.controller.dto.PublisherDTO;
 import com.rookies3.myspringbootlab.service.PublisherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.rookies3.myspringbootlab.service.BookService;
 
 import java.util.List;
 
@@ -17,6 +19,7 @@ import static com.rookies3.myspringbootlab.controller.dto.PublisherDTO.*;
 public class PublisherController {
 
     private final PublisherService publisherService;
+    private final BookService bookService;
 
     // ✅ 전체 출판사 목록 조회 (도서 수 포함)
     @GetMapping
@@ -35,6 +38,13 @@ public class PublisherController {
     public ResponseEntity<SimpleResponse> getPublisherByName(@PathVariable String name) {
         return ResponseEntity.ok(publisherService.getPublisherByName(name));
     }
+
+    @GetMapping("/{id}/books")
+    public ResponseEntity<List<BookDTO.Response>> getBooksByPublisherId(@PathVariable Long id) {
+        List<BookDTO.Response> books = bookService.getBooksByPublisherId(id);
+        return ResponseEntity.ok(books);
+    }
+
 
     // ✅ 출판사 등록
     @PostMapping
